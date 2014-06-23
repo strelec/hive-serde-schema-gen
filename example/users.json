@@ -1,0 +1,3 @@
+{"id":1, "name":"Rok", "income":null, "city":{"name":"Grosuplje", "area":12544}, "children":[{"name":"Matej"}]}
+{"id":2, "name":"Jožica", "cars":[], "num":12345678901234.5, "employed":true, "children":null}
+{"id":3, "name":"Simon", "num":0.12, "city":{"area":1234.5434}, "children":[{"name":"Simonca"},{"name":"Matic", "toy":"Ropotulica"}]}
