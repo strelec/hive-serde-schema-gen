@@ -70,7 +70,7 @@ SerDe requires your arrays to have the same data type for each element. `["a", {
 
 `[1, 12.345]` is however, completely valid, as both of formats are numerical. The result is `ARRAY<FLOAT>` as `FLOAT` suffices to exactly store numbers with up to 7 significant digits.
 
-Mismatch
+RowMismatch
 ---
 
 This exception occurs when we find a line that is not consistent with previous ones. If we have this simple file:

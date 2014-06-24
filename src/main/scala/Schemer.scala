@@ -23,7 +23,7 @@ class Schemer(file: String = "") {
 
 
 
-	case class Mismatch(a: JsValue, b: JsValue) extends Throwable {
+	case class RowMismatch(a: JsValue, b: JsValue) extends Throwable {
 		override def toString = "On the line " + lines + " you attempted to insert this JSON:" + "\n" + Json.prettyPrint(b) +
 			"\n" + "with corresponding schema:" + "\n" + out(b) +
 			"\n" + "into the schema with this signature:" + "\n" + out(a)
@@ -37,7 +37,7 @@ class Schemer(file: String = "") {
 	private def collapse(arr: Seq[JsValue]) = if (arr.size == 1) arr.head else try
 		arr.foldLeft(JsNull: JsValue)(merge(_, _))
 	catch {
-		case Mismatch(_, _) => throw new InconsistentArray(arr)
+		case RowMismatch(_, _) => throw new InconsistentArray(arr)
 	}
 
 	private def prepare(arr: JsValue) = arr match {
@@ -57,7 +57,7 @@ class Schemer(file: String = "") {
 				case Seq((_, x)) => prepare(x)
 				case Seq((_, ax), (_, bx)) => merge(ax, bx)
 			}.toSeq)
-			case _ => throw new Mismatch(a, b)
+			case _ => throw new RowMismatch(a, b)
 		}
 	}
 
