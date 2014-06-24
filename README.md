@@ -17,7 +17,7 @@ Let's say we have the following JSON in the file `users.json`.
 
 When we run the program, we get the following output. The output can then be either copied or redirected to the output file file.
 
-```
+```sql
 ADD JAR hive-json-serde-0.2.jar;
 
 CREATE TABLE data (
@@ -48,7 +48,7 @@ Take a few moments to examine the result.
 
 You should notice the `???` symbol twice, which means the data type couldn't be determined from the dataset (the data in every row is either `null` or not present).
 
-You should also notice how we determined the maximum size of a `VARCHAR` and `NUMERIC` columns.
+You should also notice how we determined the maximum size of a `VARCHAR(n)` and `NUMERIC(p, s)` columns.
 
 Numeric types
 ===
@@ -66,7 +66,7 @@ If you feed the program improper data, you will get one of these two exceptions.
 
 InconsistentArray
 ----
-SerDe requires your arrays to have the same data type for each element. `["a", {"b":1}]]` is thus invalid array, since first element is a `STRING` and the second one is `STRUCT<b: TINYINT>`.
+SerDe requires your arrays to have the same data type for each element. `["a", {"b":1}]` is thus invalid array, since first element is a `STRING` and the second one is `STRUCT<b: TINYINT>`.
 
 `[1, 12.345]` is however, completely valid, as both of formats are numerical. The result is `ARRAY<FLOAT>` as `FLOAT` suffices to exactly store numbers with up to 7 significant digits.
 
