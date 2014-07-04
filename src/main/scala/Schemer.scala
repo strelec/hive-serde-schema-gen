@@ -65,30 +65,28 @@ class Schemer(file: String = "") {
 
 	def out(json: JsValue, i: Int = 0, key: Option[String] = None): String = {
 		val pad = "\t" * i
-		pad + key.map(_ + " ").getOrElse("") + (json match {
+		pad + key.fold("")(_ + " ") + (json match {
 			case JsNull => "???"
 			case _: JsBoolean => "BOOLEAN"
 			case JsString(x) => if ((1 to 65355) contains x.size) "VARCHAR(" + x.size + ")" else "STRING"
 			case JsNumber(x) =>
 				if (x.scale == 0) {
-					if (x.isValidByte) {
+					if (x.isValidByte)
 						"TINTYINT"
-					} else if (x.isValidShort) {
+					else if (x.isValidShort)
 						"SMALLINT"
-					} else if (x.isValidInt) {
+					else if (x.isValidInt)
 						"INT"
-					} else if (x.isValidLong) {
+					else if (x.isValidLong)
 						"BIGINT"
-					} else {
+					else
 						"NUMERIC(" + x.precision + ", 0)"
-					}
-				} else if (x.precision <= 7) {
+				} else if (x.precision <= 7)
 					"FLOAT"
-				} else if (x.precision <= 15) {
+				else if (x.precision <= 15)
 					"DOUBLE"
-				} else {
+				else
 					"NUMERIC(" + x.precision + ", " + x.scale + ")"
-				}
 			case JsArray(x) => "ARRAY<\n" + out(x.head, i+1) + "\n" + pad + ">"
 			case JsObject(x) => "STRUCT<\n" + x.map { case (k, v) =>
 				out(v, i + 1, Some(k + ":"))
