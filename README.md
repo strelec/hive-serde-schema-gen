@@ -5,9 +5,13 @@ With the help of this excellent tool, you are now able to generate a SerDe schem
 
 The generator is written in Scala, a JVM language, which makes it insanely fast and enables it to run with what you already have installed.
 
-Example
+Example usage (with instructions)
 ---
-Let's say we have the following JSON in the file `users.json`.
+First, you have to install SBT (Scala Build Tool), which is the only dependency, besides JDK. You can do that here: http://www.scala-sbt.org/download.html
+
+In the project root, you should then run `sbt compile`, but you have to do that only on the first time and when you pull the newer version of a library from my GIT repository.
+
+In the source tree, there is the following JSON in the file `example/users.json`, so we'll use it for demonstration purposes.
 
 ```json
 {"id":1, "name":"Rok", "income":null, "city":{"name":"Grosuplje", "area":12544}, "children":[{"name":"Matej"}]}
@@ -15,7 +19,7 @@ Let's say we have the following JSON in the file `users.json`.
 {"id":3, "name":"Simon", "num":0.12, "city":{"area":1234.5434}, "children":[{"name":"Simonca"},{"name":"Matic", "toy":"Ropotulica"}]}
 ```
 
-When we run the program, we get the following output. The output can then be either copied or redirected to the output file file.
+When we run `sbt "run example/users.json"`, we get the following output. The output can then be either copied or redirected to the output file file.
 
 ```sql
 ADD JAR hive-json-serde-0.2.jar;
@@ -46,19 +50,19 @@ LOAD DATA LOCAL INPATH '/home/rok/web/hive-serde-schema-gen/users.json' INTO TAB
 
 Take a few moments to examine the result.
 
-You should notice the `???` symbol twice, which means the data type couldn't be determined from the dataset (the data in every row is either `null` or not present).
+You should notice the `???` symbol twice, which means the data type couldn't be inferred from the dataset (the data in every row is either `null` or not present). Therefore it's recommended to check the generated file by hand, before running it.
 
-You should also notice how we determined the maximum size of a `VARCHAR(n)` and `NUMERIC(p, s)` columns.
+If you are woundering how we determined the parameters of a `VARCHAR(n)` and `NUMERIC(p, s)` columns, read the next chapter.
 
 Numeric types
 ===
 
-This schema generator is able to automatically deduce the smallest possible data type to store all the values in a column without the loss of information.
+This schema generator is able to automatically infer the strictest possible data type to store all the values in a column without the loss of information.
 
 If column is integral for all rows (= without the fractional part, like `10`, not like `10.0` or `1.23`), then the generated type is going to be either one of these `TINYINT`, `SMALLINT`, `INT`, `BIGINT`,
 or if any of the rows is bigger than that, `NUMERIC(precision, 0)`.
 
-If any of the rows contain number with fractional part, then the result is either `FLOAT`, `DOUBLE` or if we hit the precision limit of 15 significant digits, then the type is set to `NUMERIC(precision, scale)`.
+If any of the rows contains number with a fractional part, then the result is either `FLOAT`, `DOUBLE` or if we hit the precision limit of 15 significant digits, then the type is set to `NUMERIC(precision, scale)`.
 
 Exceptions
 ===
