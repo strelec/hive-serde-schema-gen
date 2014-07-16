@@ -9,8 +9,6 @@ Example usage (with instructions)
 ---
 First, you have to install SBT (Scala Build Tool), which is the only dependency, besides JDK. You can do that here: http://www.scala-sbt.org/download.html
 
-In the project root, you should then run `sbt compile`, but you have to do that only on the first time and when you pull the newer version of a library from my GIT repository.
-
 In the source tree, there is the following JSON in the file `example/users.json`, so we'll use it for demonstration purposes.
 
 ```json
