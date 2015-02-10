@@ -24,21 +24,29 @@ class Schemer(file: String = "") {
 
 
 	case class RowMismatch(a: JsValue, b: JsValue) extends Throwable {
-		override def toString = "On the line " + lines + " you attempted to insert this JSON:" + "\n" + Json.prettyPrint(b) +
-			"\n" + "with corresponding schema:" + "\n" + out(b) +
-			"\n" + "into the schema with this signature:" + "\n" + out(a)
+		override def toString = Seq(
+			s"On the line $lines you attempted to insert this JSON:",
+			Json.prettyPrint(b),
+			"with the corresponding schema:",
+			out(b),
+			"into the schema with this signature:",
+			out(a)
+		) mkString "\n"
 	}
 
 	case class InconsistentArray(arr: Seq[JsValue]) extends Throwable {
-		override def toString = "On the line " + lines + " you have an array containing incompatible datatypes:" +
-			Json.prettyPrint(JsArray(arr))
+		override def toString =
+			"On the line $lines you have an array containing incompatible datatypes:" + Json.prettyPrint(JsArray(arr))
 	}
 
-	private def collapse(arr: Seq[JsValue]) = if (arr.size == 1) arr.head else try
-		arr.foldLeft(JsNull: JsValue)(merge(_, _))
-	catch {
-		case RowMismatch(_, _) => throw new InconsistentArray(arr)
-	}
+	private def collapse(arr: Seq[JsValue]) =
+		if (arr.size == 1)
+			arr.head
+		else try
+			arr.foldLeft(JsNull: JsValue)(merge(_, _))
+		catch {
+			case RowMismatch(_, _) => throw new InconsistentArray(arr)
+		}
 
 	private def prepare(arr: JsValue) = arr match {
 		case JsArray(x) => JsArray(Seq(collapse(x)))
@@ -50,13 +58,19 @@ class Schemer(file: String = "") {
 			case (JsNull, x) => x
 			case (x, JsNull) => x
 			case (x: JsBoolean, _: JsBoolean) => x
-			case (a@JsString(ax), b@JsString(bx)) => if (ax.size > bx.size) a else b
+
+			case (a@JsString(ax), b@JsString(bx)) =>
+				if (ax.size > bx.size) a else b
+
 			case (JsNumber(ax), JsNumber(bx)) => JsNumber((ax max bx) setScale (ax.scale max bx.scale))
 			case (JsArray(ax), JsArray(bx)) => JsArray(Seq(merge(ax.head, bx.head)))
-			case (JsObject(ax), JsObject(bx)) => JsObject((ax ++ bx).groupBy(_._1).mapValues {
-				case Seq((_, x)) => prepare(x)
-				case Seq((_, ax), (_, bx)) => merge(ax, bx)
-			}.toSeq)
+
+			case (JsObject(ax), JsObject(bx)) =>
+				JsObject((ax ++ bx).groupBy(_._1).mapValues {
+					case Seq((_, x)) => prepare(x)
+					case Seq((_, ax), (_, bx)) => merge(ax, bx)
+				}.toSeq)
+
 			case _ => throw new RowMismatch(a, b)
 		}
 	}
@@ -68,7 +82,13 @@ class Schemer(file: String = "") {
 		pad + key.fold("")(_ + " ") + (json match {
 			case JsNull => "???"
 			case _: JsBoolean => "BOOLEAN"
-			case JsString(x) => if ((1 to 65355) contains x.size) "VARCHAR(" + x.size + ")" else "STRING"
+
+			case JsString(x) =>
+				if ((1 to 65355) contains x.size)
+					s"VARCHAR(${x.size})"
+				else
+					"STRING"
+
 			case JsNumber(x) =>
 				if (x.scale == 0) {
 					if (x.isValidByte)
@@ -80,33 +100,42 @@ class Schemer(file: String = "") {
 					else if (x.isValidLong)
 						"BIGINT"
 					else
-						"NUMERIC(" + x.precision + ", 0)"
+						s"NUMERIC(${x.precision}, 0)"
 				} else if (x.precision <= 7)
 					"FLOAT"
 				else if (x.precision <= 15)
 					"DOUBLE"
 				else
-					"NUMERIC(" + x.precision + ", " + x.scale + ")"
-			case JsArray(x) => "ARRAY<\n" + out(x.head, i+1) + "\n" + pad + ">"
-			case JsObject(x) => "STRUCT<\n" + x.map { case (k, v) =>
-				out(v, i + 1, Some(k + ":"))
-			}.mkString(",\n") + "\n" + pad + ">"
+					"NUMERIC(${x.precision}, ${x.scale})"
+
+			case JsArray(x) =>
+				Seq(
+					"ARRAY<", out(x.head, i+1), s"$pad>"
+				) mkString "\n"
+
+			case JsObject(x) =>
+				Seq("STRUCT<") ++ x.map { case (k, v) =>
+					out(v, i + 1, Some(k + ":"))
+				} ++ Seq(s"$pad>") mkString "\n"
 		})
 	}
 
 	def definition(i: Int = 0) = schema match {
-		case JsObject(x) => x.map { case (k, v) =>
-			out(v, i, Some(k))
-		} mkString ",\n"
+		case JsObject(x) =>
+			x.map {
+				case (k, v) => out(v, i, Some(k))
+			} mkString ",\n"
 	}
 
-	def table(name: String) = {
-		"ADD JAR hive-json-serde-0.2.jar;" + "\n\n" +
-		s"CREATE TABLE $name (" + "\n" +
-			definition(1) + "\n" +
-		") ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.JsonSerde';" + "\n\n" +
+	def table(name: String) = Seq(
+		"ADD JAR hive-json-serde-0.2.jar;",
+		"",
+		s"CREATE TABLE $name (",
+			definition(1),
+		") ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.JsonSerde';",
+		"",
 		s"LOAD DATA LOCAL INPATH '$file' INTO TABLE $name;"
-	}
+	) mkString "\n"
 
 	override def toString = table("data")
 }
