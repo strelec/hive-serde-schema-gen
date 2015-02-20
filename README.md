@@ -5,6 +5,8 @@ With the help of this excellent tool, you are now able to generate a SerDe schem
 
 The generator is written in Scala, a JVM language, which makes it insanely fast and enables it to run with what you already have installed.
 
+If you like this project, please star or watch it, to support my work and be notfied of future updates.
+
 Example usage (with instructions)
 ---
 First, you have to install SBT (Scala Build Tool), which is the only dependency, besides JDK. You can do that here: http://www.scala-sbt.org/download.html
