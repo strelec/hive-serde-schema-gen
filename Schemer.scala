@@ -92,7 +92,7 @@ class Schemer(file: String = "") {
 			case JsNumber(x) =>
 				if (x.scale == 0) {
 					if (x.isValidByte)
-						"TINTYINT"
+						"TINYINT"
 					else if (x.isValidShort)
 						"SMALLINT"
 					else if (x.isValidInt)

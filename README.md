@@ -41,7 +41,7 @@ CREATE TABLE data (
 	>,
 	num NUMERIC(16, 2),
 	employed BOOLEAN,
-	id TINTYINT,
+	id TINYINT,
 	income ???
 ) ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.JsonSerde';
 
