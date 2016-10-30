@@ -66,7 +66,7 @@ class Schemer(file: String = "") {
 			case (JsArray(ax), JsArray(bx)) => JsArray(Seq(merge(ax.head, bx.head)))
 
 			case (JsObject(ax), JsObject(bx)) =>
-				JsObject((ax ++ bx).groupBy(_._1).mapValues {
+				JsObject((ax.toSeq ++ bx.toSeq).groupBy(_._1).mapValues {
 					case Seq((_, x)) => prepare(x)
 					case Seq((_, ax), (_, bx)) => merge(ax, bx)
 				}.toSeq)
