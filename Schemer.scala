@@ -5,23 +5,13 @@ import play.api.libs.json._
 import scala.io.Source
 
 class Schemer(file: String = "") {
-	var schema: JsValue = Json.obj()
 	var lines = 0
 
-	if (!file.isEmpty) loadFile(file)
-
-	def addLine(line: String) {
+	var schema: JsValue = Json.obj()
+	for (line <- Source.fromFile(file).getLines) {
 		lines += 1
-		val json = Json.parse(line)
-		schema = merge(schema, json)
+		schema = merge(schema, Json.parse(line))
 	}
-
-	def loadFile(name: String) {
-		for (line <- Source.fromFile(name).getLines)
-			addLine(line)
-	}
-
-
 
 	case class RowMismatch(a: JsValue, b: JsValue) extends Throwable {
 		override def toString = Seq(
@@ -39,17 +29,14 @@ class Schemer(file: String = "") {
 			"On the line $lines you have an array containing incompatible datatypes:" + Json.prettyPrint(JsArray(arr))
 	}
 
-	private def collapse(arr: Seq[JsValue]) =
-		if (arr.size == 1)
-			arr.head
-		else try
-			arr.foldLeft(JsNull: JsValue)(merge(_, _))
-		catch {
-			case RowMismatch(_, _) => throw new InconsistentArray(arr)
-		}
-
 	private def prepare(arr: JsValue) = arr match {
-		case JsArray(x) => JsArray(Seq(collapse(x)))
+		case x @ JsArray(Seq(_)) => x
+		case JsArray(s) =>
+			try
+				JsArray(Seq(s.foldLeft(JsNull: JsValue)(merge(_, _))))
+			catch { case RowMismatch(_, _) =>
+				throw new InconsistentArray(s)
+			}
 		case x => x
 	}
 
@@ -83,30 +70,19 @@ class Schemer(file: String = "") {
 			case JsNull => "???"
 			case _: JsBoolean => "BOOLEAN"
 
-			case JsString(x) =>
-				if ((1 to 65355) contains x.size)
-					s"VARCHAR(${x.size})"
-				else
-					"STRING"
+			case JsString(x) if 0 < x.size && x.size < 65356 =>
+				s"VARCHAR(${x.size})"
+			case _: JsString => "STRING"
 
-			case JsNumber(x) =>
-				if (x.scale == 0) {
-					if (x.isValidByte)
-						"TINYINT"
-					else if (x.isValidShort)
-						"SMALLINT"
-					else if (x.isValidInt)
-						"INT"
-					else if (x.isValidLong)
-						"BIGINT"
-					else
-						s"NUMERIC(${x.precision}, 0)"
-				} else if (x.precision <= 7)
-					"FLOAT"
-				else if (x.precision <= 15)
-					"DOUBLE"
-				else
-					"NUMERIC(${x.precision}, ${x.scale})"
+			case JsNumber(x) if (x.scale == 0) =>
+				if (x.isValidByte) "TINYINT"
+				else if (x.isValidShort) "SMALLINT"
+				else if (x.isValidInt) "INT"
+				else if (x.isValidLong) "BIGINT"
+				else s"NUMERIC(${x.precision}, 0)"
+			case JsNumber(x) if (x.precision <= 7) => "FLOAT"
+			case JsNumber(x) if (x.precision <= 15) => "DOUBLE"
+			case JsNumber(x) => s"NUMERIC(${x.precision}, ${x.scale})"
 
 			case JsArray(x) =>
 				Seq(
@@ -114,9 +90,9 @@ class Schemer(file: String = "") {
 				) mkString "\n"
 
 			case JsObject(x) =>
-				Seq("STRUCT<") ++ x.map { case (k, v) =>
+				(Seq("STRUCT<") ++ x.map { case (k, v) =>
 					out(v, i + 1, Some(k + ":"))
-				} ++ Seq(s"$pad>") mkString "\n"
+				} ++ Seq(s"$pad>")).mkString("\n")
 		})
 	}
 
@@ -125,6 +101,7 @@ class Schemer(file: String = "") {
 			x.map {
 				case (k, v) => out(v, i, Some(k))
 			} mkString ",\n"
+		case _ => "ERROR"
 	}
 
 	def table(name: String) = Seq(
@@ -135,7 +112,7 @@ class Schemer(file: String = "") {
 		") ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.JsonSerde';",
 		"",
 		s"LOAD DATA LOCAL INPATH '$file' INTO TABLE $name;"
-	) mkString "\n"
+	).mkString("\n")
 
 	override def toString = table("data")
 }
